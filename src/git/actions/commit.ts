@@ -325,10 +325,8 @@ export async function openChanges(
 	commitOrRefs: GitCommit | RefRange,
 	options?: TextDocumentShowOptions & { lhsTitle?: string; rhsTitle?: string },
 ) {
-	const hasCommit = isCommit(commitOrRefs);
-
 	if (typeof file === 'string') {
-		if (!hasCommit) throw new Error('Invalid arguments');
+		if (!isCommit(commitOrRefs)) throw new Error('Invalid arguments');
 
 		const f = await commitOrRefs.findFile(file);
 		if (f == null) throw new Error('Invalid arguments');
@@ -340,7 +338,9 @@ export async function openChanges(
 
 	options = { preserveFocus: true, preview: false, ...options };
 
-	if (file.status === 'A' && hasCommit) {
+	if (file.status === 'A') {
+		if (!isCommit(commitOrRefs)) return;
+
 		const commit = await commitOrRefs.getCommitForFile(file);
 		void executeCommand<DiffWithPreviousCommandArgs>(Commands.DiffWithPrevious, {
 			commit: commit,
@@ -350,7 +350,7 @@ export async function openChanges(
 		return;
 	}
 
-	const refs: RefRange = hasCommit
+	const refs = isCommit(commitOrRefs)
 		? {
 				repoPath: commitOrRefs.repoPath,
 				rhs: commitOrRefs.sha,
